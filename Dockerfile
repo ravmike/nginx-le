@@ -1,7 +1,7 @@
 FROM nginx:1.28-alpine
 
 # enables automatic changelog generation by tools like Dependabot
-LABEL org.opencontainers.image.source="https://github.com/nginx-le/nginx-le"
+LABEL org.opencontainers.image.source="https://github.com/ravmike/nginx-le"
 
 ADD conf/nginx.conf /etc/nginx/nginx.conf
 
