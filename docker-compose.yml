@@ -3,7 +3,7 @@ services:
 
     nginx:
         build: .
-        image: ravmike/nginx-le:latest
+        image: ghcr.io/ravmike/nginx-le:1.30
         hostname: nginx
         restart: always
         container_name: nginx
@@ -21,6 +21,8 @@ services:
             # - ./etc/stream-example-2.conf:/etc/nginx/stream2.conf # more streams, should be stream*.conf
             # - ./etc/conf.d:/etc/nginx/conf.d-le # configuration folder, all files from it will be added
             # - ./etc/stream.conf:/etc/nginx/stream.conf.d-le # streams configuration folder, all files from it will be added
+            - ./access.log:/var/log/nginx/access.log
+            - ./tls-observability.log:/var/log/nginx/tls-observability.log
         ports:
             - "80:80"
             - "443:443"

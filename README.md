@@ -4,7 +4,7 @@ Simple nginx image (alpine based) with integrated [Let's Encrypt](https://letsen
 
 ## How to use
 
-- get [docker-compose.yml](https://github.com/umputun/nginx-le/blob/master/docker-compose.yml) and change things:
+- get [docker-compose.yml](https://github.com/ravmike/nginx-le/blob/master/docker-compose.yml) and change things:
   - set timezone to your local, for example `TZ=UTC`. For more timezone values check `/usr/share/zoneinfo` directory
   - set `LETSENCRYPT=true` if you want an automatic certificate install and renewal
   - `LE_EMAIL` should be your email and `LE_FQDN` for domain
@@ -19,8 +19,12 @@ Simple nginx image (alpine based) with integrated [Let's Encrypt](https://letsen
     ```
     Shared TLS policy belongs in `nginx.conf`, not in every `service*.conf`.
 - make sure `volumes` in docker-compose.yml changed to your service config
+- create host log files before first start so Docker does not create directories for them:
+  ```sh
+  touch access.log tls-observability.log
+  ```
 - you can map multiple custom config files to in compose using `service*.conf` filename pattern, 
-  see `service2.conf` in [docker-compose.yml](https://github.com/nginx-le/nginx-le/blob/master/docker-compose.yml)
+  see `service2.conf` in [docker-compose.yml](https://github.com/ravmike/nginx-le/blob/master/docker-compose.yml)
   file for reference
 
   Alternatively, mount directory with `*.conf` files into `/etc/nginx/conf.d-le` directory inside
@@ -61,10 +65,23 @@ variable with dollar sign (`$`, like `$LE_FQDN`) will be taken from environment,
 
 ## Some implementation details
 
-**Important:** provided [nginx.conf](https://github.com/umputun/nginx-le/blob/master/conf/nginx.conf) handles 
-http->https redirect automatically, no need to add it into your custom `service.conf`. In case if you need a custom server on
-http (:80) port, make sure you [handle](https://github.com/umputun/nginx-le/blob/master/conf/nginx.conf#L62) `/.well-known/` 
-path needed with `root` set for LE challenge: `location /.well-known/ {root /usr/share/nginx/html;}`
+**Important:** provided [nginx.conf](https://github.com/ravmike/nginx-le/blob/master/conf/nginx.conf) is the intended shared
+production baseline. It handles HTTP->HTTPS redirect, modern TLS defaults,
+proxy buffers/timeouts, WebSocket upgrade mapping, and access/TLS observability
+logs. In most deployments you should only mount `service*.conf` files and avoid
+overriding `/etc/nginx/nginx.conf`.
+
+If you intentionally replace the full `nginx.conf`, keep the default
+`/.well-known/` HTTP location with `root /usr/share/nginx/html;` so Let's
+Encrypt HTTP-01 challenges keep working.
+
+By default nginx writes:
+
+- `/var/log/nginx/access.log` using the `custom` request log format
+- `/var/log/nginx/tls-observability.log` as JSON lines with negotiated TLS
+  protocol, cipher, curve, ALPN, signature algorithm, ECH, and early-data fields
+
+Mount both files from the host if you need logs to survive container recreation.
 
 - image uses alpine's `certbot` package.
 - image is based on `nginx:1.30-alpine` and verifies at build time that nginx,
