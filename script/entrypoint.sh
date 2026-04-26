@@ -49,13 +49,8 @@ sed -i "s|SSL_CHAIN_CERT|${LE_SSL_CHAIN_CERT}|g" /etc/nginx/stream.d/*.conf 2>/d
 sed -i "s|LE_FQDN|${LE_FQDN}|g" /etc/nginx/conf.d/*.conf 2>/dev/null
 sed -i "s|LE_FQDN|${LE_FQDN}|g" /etc/nginx/stream.d/*.conf 2>/dev/null
 
-#generate dhparams.pem
-if [ ! -f /etc/nginx/ssl/dhparams.pem ]; then
-    echo "make dhparams"
-    cd /etc/nginx/ssl
-    openssl dhparam -out dhparams.pem 2048
-    chmod 600 dhparams.pem
-fi
+# DHE ciphers are no longer enabled in the default TLS policy. Keep an
+# existing mounted dhparams.pem for compatibility, but do not generate one.
 
 #disable configuration and let it run without SSL
 mv -v /etc/nginx/conf.d /etc/nginx/conf.d.disabled

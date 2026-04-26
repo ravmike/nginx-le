@@ -11,12 +11,13 @@ Simple nginx image (alpine based) with integrated [Let's Encrypt](https://letsen
   - for multiple FQDNs you can pass comma-separated list, like `LE_FQDN=aaa.example.com,bbb.example.com`
   - alternatively set `LETSENCRYPT` to `false` and pass your own cert in `SSL_CERT`, key in `SSL_KEY` and `SSL_CHAIN_CERT`
   - `LE_ADDITIONAL_OPTIONS` can be set to anything you want to append to certbot, for example `LE_ADDITIONAL_OPTIONS=--preferred-chain "ISRG Root X1" --debug`.
-  - use provided `etc/service-example.conf` to make your own `etc/service.conf`. Keep ssl directives as is:
+  - use provided `etc/service-example.conf` to make your own `etc/service.conf`. Keep only the certificate directives in vhost files:
     ```nginx
     ssl_certificate SSL_CERT;
     ssl_certificate_key SSL_KEY;
     ssl_trusted_certificate SSL_CHAIN_CERT;
     ```
+    Shared TLS policy belongs in `nginx.conf`, not in every `service*.conf`.
 - make sure `volumes` in docker-compose.yml changed to your service config
 - you can map multiple custom config files to in compose using `service*.conf` filename pattern, 
   see `service2.conf` in [docker-compose.yml](https://github.com/nginx-le/nginx-le/blob/master/docker-compose.yml)
@@ -66,6 +67,9 @@ http (:80) port, make sure you [handle](https://github.com/umputun/nginx-le/blob
 path needed with `root` set for LE challenge: `location /.well-known/ {root /usr/share/nginx/html;}`
 
 - image uses alpine's `certbot` package.
+- image is based on `nginx:1.30-alpine` and verifies at build time that nginx,
+  OpenSSL, and the OpenSSL 3.5 post-quantum hybrid TLS groups
+  `X25519MLKEM768` and `SecP256r1MLKEM768` are available.
 - `script/entrypoint.sh` requests LE certificate and will refresh every 10 days in case if certificate is close to expiration (30day)
 - `script/le.sh` gets SSL
 - nginx-le on [docker-hub](https://hub.docker.com/r/umputun/nginx-le/)
