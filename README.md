@@ -84,7 +84,7 @@ By default nginx writes:
 Mount both files from the host if you need logs to survive container recreation.
 
 - image uses alpine's `certbot` package.
-- image is based on `nginx:1.30-alpine` and verifies at build time that nginx,
+- image is based on `nginx:1.30.4-alpine` and verifies at build time that nginx,
   OpenSSL, and the OpenSSL 3.5 post-quantum hybrid TLS groups
   `X25519MLKEM768` and `SecP256r1MLKEM768` are available.
 - `script/entrypoint.sh` requests LE certificate and will refresh every 10 days in case if certificate is close to expiration (30day)
