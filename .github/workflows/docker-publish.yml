@@ -3,6 +3,7 @@ name: Docker Publish
 on:
   schedule:
     - cron: '43 1 * * *'
+  workflow_dispatch:
   push:
     branches: [ "master" ]
     # Publish semver tags as releases.
@@ -10,10 +11,12 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
@@ -91,3 +94,47 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+  heartbeat:
+    if: >-
+      ${{
+        github.event_name == 'schedule' &&
+        github.repository == 'ravmike/nginx-le' &&
+        github.ref == 'refs/heads/master'
+      }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: nginx-le-publish-heartbeat
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Commit heartbeat only when master is stale
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git checkout --detach origin/master
+          latest_commit_epoch="$(git show -s --format=%ct origin/master)"
+          now_epoch="$(date -u +%s)"
+          if (( now_epoch - latest_commit_epoch <= 40 * 24 * 60 * 60 )); then
+            echo "Master was updated within the last 40 days; no heartbeat needed."
+            exit 0
+          fi
+
+          printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .github/publish-heartbeat
+          git add -- .github/publish-heartbeat
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'ci: keep scheduled publish active'
+          # A concurrent master push makes this fast-forward push fail safely;
+          # the next scheduled run rechecks the current master commit date.
+          git push origin HEAD:master
